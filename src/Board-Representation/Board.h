@@ -5,8 +5,6 @@
 
 namespace Thoth {
 
-namespace Board {
-
 constexpr int MAX_HISTORY = 1024;
 
 enum CastlingRights : uint8_t {
@@ -17,11 +15,27 @@ enum CastlingRights : uint8_t {
     CASTLE_BQ = 0b1000
 };
 
+constexpr CastlingRights operator|(CastlingRights a, CastlingRights b) {
+    return static_cast<CastlingRights>(static_cast<uint8_t>(a) | static_cast<uint8_t>(b));
+}
+
+constexpr CastlingRights operator&(CastlingRights a, CastlingRights b) {
+    return static_cast<CastlingRights>(static_cast<uint8_t>(a) & static_cast<uint8_t>(b));
+}
+
+constexpr CastlingRights& operator|=(CastlingRights& a, CastlingRights b) {
+    return a = a | b;
+}
+
+constexpr CastlingRights& operator&=(CastlingRights& a, CastlingRights b) {
+    return a = a & b;
+}
+
 class Board {
     private:
         BitBoard pieces[COLOR_NB][PIECE_TYPE_NB];
         BitBoard occupancies[COLOR_NB + 1];
-        PieceType pieceOn[SQUARE_NB];
+        Piece pieceOn[SQUARE_NB];
         uint64_t zobristHash;
 
         Color sideToMove = WHITE;
@@ -38,7 +52,7 @@ class Board {
         int historyIndex = 0;
 
     public:
-        Board();
+        //Board();
 
         //Getter
         Square getEnPassantSquare() const {return enPassantSquare;}
@@ -52,21 +66,19 @@ class Board {
 
 
         //Methods
-        bool isInCheck(Color side) const;
-        bool isSquareAttacked(Square sq, Color attackingSide) const;
+        //bool isInCheck(Color side) const;
+        //bool isSquareAttacked(Square sq, Color attackingSide) const;
 
-        void updateOccupanies();
-        void computeZobristHash();
+        void updateOccupancies();
+        //void computeZobristHash();
 
-        void clearBoard();
+        //void clearBoard();
         void parseFEN(const std::string &fen);
 
         //void makeMove(Move move);
         //void unmakeMove();
 
         void printBoard() const;
-        void printBitBoard(BitBoard bb) const;
+        //void printBitBoard(BitBoard bb) const;
 };
-
-}
 }
