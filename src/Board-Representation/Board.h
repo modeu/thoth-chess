@@ -1,6 +1,7 @@
 #pragma once
 #include "BitBoard.h"
 #include <string>
+#include <array>
 
 
 namespace Thoth {
@@ -33,9 +34,9 @@ constexpr CastlingRights& operator&=(CastlingRights& a, CastlingRights b) {
 
 class Board {
     private:
-        BitBoard pieces[COLOR_NB][PIECE_TYPE_NB];
-        BitBoard occupancies[COLOR_NB + 1];
-        Piece pieceOn[SQUARE_NB];
+        std::array<std::array<BitBoard, PIECE_TYPE_NB>, COLOR_NB> pieces;
+        std::array<BitBoard, COLOR_NB + 1> occupancies;
+        std::array<Piece, PIECE_TYPE_NB> pieceOn;
         uint64_t zobristHash;
 
         Color sideToMove = WHITE;
@@ -72,13 +73,13 @@ class Board {
         void updateOccupancies();
         //void computeZobristHash();
 
-        //void clearBoard();
+        void clearBoard();
         void parseFEN(const std::string &fen);
 
         //void makeMove(Move move);
         //void unmakeMove();
 
         void printBoard() const;
-        //void printBitBoard(BitBoard bb) const;
+        void printBitBoard(BitBoard bb) const;
 };
 }

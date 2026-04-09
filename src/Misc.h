@@ -44,3 +44,6 @@ constexpr PieceType typeOf(Piece p) {
     return static_cast<PieceType>(p % PIECE_TYPE_NB);
 }
 
+constexpr BitBoard squareBB(Square sq) {
+    return (1ULL << sq);
+}
