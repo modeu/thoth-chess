@@ -6,7 +6,7 @@
 
 namespace Thoth {
 
-
+//Helper Functions
 constexpr PieceType charToPieceType(char c) {
     switch(c) {
             case 'p': return PAWN;
@@ -20,9 +20,7 @@ constexpr PieceType charToPieceType(char c) {
 }
 
 
-
-
-
+//Board Class
 void Board::updateOccupancies() {
     occupancies[WHITE] = 0ULL;
     occupancies[BLACK] = 0ULL;
@@ -132,6 +130,20 @@ void Board::printBoard() const {
         for (int file = 0; file < 8; file++) {
             Square sq = makeSquare(file, rank);
             std::cout << ((occupied >> sq) & 1) << " ";
+        }
+
+        std::cout << std::endl;
+    }
+
+    std::cout << " A B C D E F G H" << std::endl;
+}
+
+void Board::printBitBoard(BitBoard bb) const {
+    for (int rank = 7; rank >= 0; rank--) {
+        std::cout << rank + 1 << " ";
+        for (int file = 0; file < 8; file++) {
+            Square sq = makeSquare(file, rank);
+            std::cout << ((bb >> sq) & 1) << " ";
         }
 
         std::cout << std::endl;
