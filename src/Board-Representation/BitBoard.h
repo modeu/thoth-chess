@@ -3,11 +3,15 @@
 #include "../Misc.h"
 
 constexpr int countBits(BitBoard bb) {
-    return __builtin_popcountll(bb);
+    return std::__popcount(bb);
 }
 
 constexpr int getLSB(BitBoard bb) {
-    return __builtin_ctzll(bb);
+    return std::__countr_zero(bb);
+}
+
+constexpr int getMSB(BitBoard bb) {
+    return 63 - std::__countl_zero(bb);
 }
 
 inline int popLSB(BitBoard &bb) {
@@ -15,3 +19,4 @@ inline int popLSB(BitBoard &bb) {
     bb &= bb - 1;
     return square;
 }
+
