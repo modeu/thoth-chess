@@ -61,7 +61,7 @@ class Board {
         Color getSideToMove() const {return sideToMove;}
         CastlingRights getCastlingRights() const {return castlingRights;}
         BitBoard getPiece(Color c, PieceType p) const {return pieces[c][p];}
-        BitBoard getPieceOn(Square sq) const {return pieceOn[sq];}
+        Piece getPieceOn(Square sq) const {return pieceOn[sq];}
         BitBoard getOccupancy(Color c) const {return occupancies[c];}
         uint64_t getZobristHash() const {return zobristHash;}
         int getHistoryIndex() const {return historyIndex;}
