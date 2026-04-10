@@ -2,6 +2,8 @@
 #include <bit>
 #include "../Misc.h"
 
+namespace Thoth {
+
 constexpr int countBits(BitBoard bb) {
     return std::__popcount(bb);
 }
@@ -18,5 +20,7 @@ inline int popLSB(BitBoard &bb) {
     int square = getLSB(bb);
     bb &= bb - 1;
     return square;
+}
+
 }
 

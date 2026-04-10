@@ -36,7 +36,7 @@ constexpr Square makeSquare(int file, int rank) {
 }
 
 constexpr Piece makePiece(Color c, PieceType pt) {
-    return static_cast<Piece>(c * PIECE_TYPE_NB + pt);
+    return static_cast<Piece>((int)c * (int)PIECE_TYPE_NB + (int)pt);
 }
 
 constexpr Color colorOf(Piece p) {
