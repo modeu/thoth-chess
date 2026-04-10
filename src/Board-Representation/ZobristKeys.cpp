@@ -1,6 +1,7 @@
 #include "ZobristKeys.h"
 
-namespace Zobrist{
+namespace Thoth {
+namespace Zobrist {
 
 uint64_t pieceKeys[COLOR_NB][PIECE_TYPE_NB][SQUARE_NB];
 uint64_t sideKey;
@@ -33,5 +34,6 @@ void initKeys() {
     }
 
     sideKey = prng(seed);
+}
 }
 }

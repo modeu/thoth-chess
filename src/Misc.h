@@ -1,8 +1,11 @@
 #pragma once
 #include <cstdint>
 
+namespace Thoth {
+
 using BitBoard = uint64_t;
 using Piece = int8_t;
+using Move = uint32_t;
 
 constexpr Piece NO_PIECE = -1;
 
@@ -46,4 +49,7 @@ constexpr PieceType typeOf(Piece p) {
 
 constexpr BitBoard squareBB(Square sq) {
     return (1ULL << sq);
+}
+
+
 }
