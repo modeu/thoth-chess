@@ -1,5 +1,4 @@
 #include "Board.h"
-#include <vector>
 #include <sstream>
 #include <iostream>
 
@@ -16,7 +15,7 @@ constexpr PieceType charToPieceType(char c) {
             case 'q': return QUEEN;
             case 'k': return KING;
             default: return PIECE_TYPE_NB;
-        }
+    }
 }
 
 
@@ -31,6 +30,29 @@ void Board::updateOccupancies() {
     }
 
     occupancies[COLOR_NB] = occupancies[WHITE] | occupancies[BLACK];
+}
+
+void Board::computeZobristHash() {
+    zobristHash = 0ULL;
+
+    for (int c = 0; c < COLOR_NB; c++) {
+        for (int pt = 0; pt < PIECE_TYPE_NB; pt++) {
+            BitBoard bb = pieces[c][pt];
+
+            while(bb) {
+                Square sq = static_cast<Square>(popLSB(bb));
+                zobristHash ^= Zobrist::pieceKeys[c][pt][sq]; 
+            }
+        }
+    }
+
+    if (enPassantSquare != NO_SQUARE) {
+        zobristHash ^= Zobrist::enPassantKeys[enPassantSquare % 8];
+    }
+
+    zobristHash ^= Zobrist::castlingKeys[castlingRights];
+
+    if (sideToMove == BLACK) zobristHash ^= Zobrist::sideKey;
 }
 
 void Board::clearBoard() {
@@ -65,13 +87,13 @@ void Board::parseFEN(const std::string &fen) {
         } else if (c >= '1' && c <= '8') {
             file += c - '0';
         } else {
-            Color c = isupper(c) ? WHITE : BLACK;
-            PieceType pieceType = charToPieceType(c);
+            Color col = isupper(c) ? WHITE : BLACK;
+            PieceType pieceType = charToPieceType(tolower(c));
 
             if (pieceType != PIECE_TYPE_NB) {
                 Square sq = makeSquare(file, rank);
-                pieces[c][pieceType] |= squareBB(sq);
-                pieceOn[sq] = makePiece(c, pieceType);
+                pieces[col][pieceType] |= squareBB(sq);
+                pieceOn[sq] = makePiece(col, pieceType);
                 file++;
             }
         }
@@ -119,7 +141,7 @@ void Board::parseFEN(const std::string &fen) {
     if (ss >> token) halfMoveClock = stoi(token);
     if (ss >> token) fullMoveClock = stoi(token); 
 
-    //computeZobristHash();
+    computeZobristHash();
 }
 
 void Board::printBoard() const {

@@ -1,5 +1,6 @@
 #pragma once
 #include "BitBoard.h"
+#include "ZobristKeys.h"
 #include <string>
 #include <array>
 
@@ -36,7 +37,7 @@ class Board {
     private:
         std::array<std::array<BitBoard, PIECE_TYPE_NB>, COLOR_NB> pieces;
         std::array<BitBoard, COLOR_NB + 1> occupancies;
-        std::array<Piece, PIECE_TYPE_NB> pieceOn;
+        std::array<Piece, SQUARE_NB> pieceOn;
         uint64_t zobristHash;
 
         Color sideToMove = WHITE;
@@ -71,7 +72,7 @@ class Board {
         //bool isSquareAttacked(Square sq, Color attackingSide) const;
 
         void updateOccupancies();
-        //void computeZobristHash();
+        void computeZobristHash();
 
         void clearBoard();
         void parseFEN(const std::string &fen);
