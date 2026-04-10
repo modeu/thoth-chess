@@ -23,6 +23,8 @@ inline PieceType getPromoPt (Move m) {return static_cast<PieceType>((m >> 19) & 
 inline bool isDoublePP(Move m) {return getFlag(m) == DOUBLE_PAWN_PUSH;}
 inline bool isEnPassant(Move m) {return getFlag(m) == EN_PASSANT;}
 inline bool isCastle(Move m) {return getFlag(m) == CASTLE_KING || getFlag(m) == CASTLE_QUEEN;}
+inline bool isCastleKing(Move m) {return getFlag(m) == CASTLE_KING;}
+inline bool isCastleQueen(Move m) {return getFlag(m) == CASTLE_QUEEN;}
 inline bool isPromotion(Move m) {return getFlag(m) == PROMOTION;}
 inline bool isNormalMove(Move m) {return getFlag(m) == NORMAL;}
 

@@ -144,6 +144,56 @@ void Board::parseFEN(const std::string &fen) {
     computeZobristHash();
 }
 
+void Board::makeMove(Move move) {
+    Square from = Moves::getFrom(move);
+    Square to = Moves::getTo(move);
+    PieceType pt = Moves::getPt(move);
+
+
+    //Save Boardstate in History
+    history[historyIndex].lastMove = move;
+    history[historyIndex].enPassantSquare = enPassantSquare;
+    history[historyIndex].castlingRights = castlingRights;
+    history[historyIndex].halfMoveClock = halfMoveClock;
+    history[historyIndex].capturedPiece = pieceOn[to];
+    history[historyIndex].zobristHash = zobristHash;
+    historyIndex++;
+
+    //Remove opponent Piece in Bitboard
+    if (pieceOn[to] != NO_PIECE) {
+        pieces[!sideToMove][pieceOn[to]] &= ~(1ULL << to);
+    }
+
+    //Move own Piece in Bitboard
+    pieces[sideToMove][pt] |= 1ULL << to;
+    pieces[sideToMove][pt] &= ~(1ULL << from);
+
+    //Array update
+    pieceOn[to] = pieceOn[from];
+    pieceOn[from] = NO_PIECE;
+
+    //Flag Handling
+    if (Moves::isEnPassant(move)) {
+        int capturedPawnSq = to + (sideToMove == WHITE ? -8 : 8);
+        pieceOn[capturedPawnSq] = NO_PIECE;
+        pieces[!sideToMove][PAWN] &= ~(1ULL << capturedPawnSq); 
+    } else if (Moves::isCastleKing(move)) {
+        pieces[sideToMove][ROOK] |=  1ULL << (sideToMove == WHITE ? F1 : F8);
+        pieces[sideToMove][ROOK] &= ~(1ULL << (sideToMove == WHITE ? H1 : H8));
+        pieceOn[sideToMove == WHITE ? F1 : F8] = ROOK;
+        pieceOn[sideToMove == WHITE ? H1 : H8] = NO_PIECE;
+    } else if (Moves::isCastleQueen(move)) {
+        pieces[sideToMove][ROOK] |=  1ULL << (sideToMove == WHITE ? D1 : D8);
+        pieces[sideToMove][ROOK] &= ~(1ULL << (sideToMove == WHITE ? A1 : A8));
+        pieceOn[sideToMove == WHITE ? D1 : D8] = ROOK;
+        pieceOn[sideToMove == WHITE ? A1 : A8] = NO_PIECE;
+    } else if (Moves::isPromotion(move)) {
+        pieces[sideToMove][PAWN] &= ~(1ULL << to);
+        pieces[sideToMove][Moves::getPromoPt(move)] |= 1ULL << to;
+        pieceOn[to] = Moves::getPromoPt(move);
+    }
+}
+
 void Board::printBoard() const {
     BitBoard occupied = getOccupancy(COLOR_NB);
 

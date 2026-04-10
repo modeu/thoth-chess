@@ -1,6 +1,7 @@
 #pragma once
 #include "BitBoard.h"
 #include "ZobristKeys.h"
+#include "Move.h"
 #include <string>
 #include <array>
 
@@ -47,7 +48,12 @@ class Board {
         int fullMoveClock = 1;
 
         struct BoardState {
-            
+            Square enPassantSquare;
+            CastlingRights castlingRights;
+            int halfMoveClock;
+            uint64_t zobristHash;
+            Piece capturedPiece;
+            Move lastMove;
         };
 
         BoardState history[MAX_HISTORY];
@@ -77,8 +83,8 @@ class Board {
         void clearBoard();
         void parseFEN(const std::string &fen);
 
-        //void makeMove(Move move);
-        //void unmakeMove();
+        void makeMove(Move move);
+        void unmakeMove();
 
         void printBoard() const;
         void printBitBoard(BitBoard bb) const;
