@@ -148,6 +148,7 @@ void Board::makeMove(Move move) {
     Square from = Moves::getFrom(move);
     Square to = Moves::getTo(move);
     PieceType pt = Moves::getPt(move);
+    Color enemy = ~sideToMove;
 
 
     //Save Boardstate in History
@@ -161,12 +162,12 @@ void Board::makeMove(Move move) {
 
     //Remove opponent Piece in Bitboard
     if (pieceOn[to] != NO_PIECE) {
-        pieces[!sideToMove][pieceOn[to]] &= ~(1ULL << to);
+        pieces[enemy][pieceOn[to]] &= ~squareBB(to);
     }
 
     //Move own Piece in Bitboard
-    pieces[sideToMove][pt] |= 1ULL << to;
-    pieces[sideToMove][pt] &= ~(1ULL << from);
+    pieces[sideToMove][pt] |= squareBB(to);
+    pieces[sideToMove][pt] &= ~squareBB(from);
 
     //Array update
     pieceOn[to] = pieceOn[from];
@@ -174,24 +175,122 @@ void Board::makeMove(Move move) {
 
     //Flag Handling
     if (Moves::isEnPassant(move)) {
-        int capturedPawnSq = to + (sideToMove == WHITE ? -8 : 8);
+        Square capturedPawnSq = static_cast<Square>(to + (sideToMove == WHITE ? -8 : 8));
         pieceOn[capturedPawnSq] = NO_PIECE;
-        pieces[!sideToMove][PAWN] &= ~(1ULL << capturedPawnSq); 
+        pieces[enemy][PAWN] &= ~squareBB(capturedPawnSq);
     } else if (Moves::isCastleKing(move)) {
-        pieces[sideToMove][ROOK] |=  1ULL << (sideToMove == WHITE ? F1 : F8);
-        pieces[sideToMove][ROOK] &= ~(1ULL << (sideToMove == WHITE ? H1 : H8));
-        pieceOn[sideToMove == WHITE ? F1 : F8] = ROOK;
-        pieceOn[sideToMove == WHITE ? H1 : H8] = NO_PIECE;
+        Square rookFrom = sideToMove == WHITE ? H1 : H8;
+        Square rookTo   = sideToMove == WHITE ? F1 : F8;
+        pieces[sideToMove][ROOK] |=  squareBB(rookTo);
+        pieces[sideToMove][ROOK] &= ~squareBB(rookFrom);
+        pieceOn[rookTo]   = makePiece(sideToMove, ROOK);
+        pieceOn[rookFrom] = NO_PIECE;
     } else if (Moves::isCastleQueen(move)) {
-        pieces[sideToMove][ROOK] |=  1ULL << (sideToMove == WHITE ? D1 : D8);
-        pieces[sideToMove][ROOK] &= ~(1ULL << (sideToMove == WHITE ? A1 : A8));
-        pieceOn[sideToMove == WHITE ? D1 : D8] = ROOK;
-        pieceOn[sideToMove == WHITE ? A1 : A8] = NO_PIECE;
+        Square rookFrom = sideToMove == WHITE ? A1 : A8;
+        Square rookTo   = sideToMove == WHITE ? D1 : D8;
+        pieces[sideToMove][ROOK] |=  squareBB(rookTo);
+        pieces[sideToMove][ROOK] &= ~squareBB(rookFrom);
+        pieceOn[rookTo]   = makePiece(sideToMove, ROOK);
+        pieceOn[rookFrom] = NO_PIECE;
     } else if (Moves::isPromotion(move)) {
-        pieces[sideToMove][PAWN] &= ~(1ULL << to);
-        pieces[sideToMove][Moves::getPromoPt(move)] |= 1ULL << to;
-        pieceOn[to] = Moves::getPromoPt(move);
+        PieceType promoPt = Moves::getPromoPt(move);
+        pieces[sideToMove][PAWN]   &= ~squareBB(to);
+        pieces[sideToMove][promoPt] |=  squareBB(to);
+        pieceOn[to] = makePiece(sideToMove, promoPt);
     }
+
+    //En Passant Handling
+    enPassantSquare = Moves::isDoublePP(move) ? static_cast<Square>(to + (sideToMove == WHITE ? -8 : 8)) : NO_SQUARE;
+
+    //Castling Rights
+    if (pt == KING) {
+        castlingRights &= sideToMove == WHITE ? ~(CASTLE_WK | CASTLE_WQ) : ~(CASTLE_BK | CASTLE_BQ);
+    }
+
+    Piece captured = history[historyIndex - 1].capturedPiece;
+    if (pt == ROOK || typeOf(captured) == ROOK) {
+        if (from == A1 || to == A1) castlingRights &= ~CASTLE_WQ;
+        else if (from == H1 || to == H1) castlingRights &= ~CASTLE_WK;
+        else if (from == A8 || to == A8) castlingRights &= ~CASTLE_BQ;
+        else if (from == H8 || to == H8) castlingRights &= ~CASTLE_BK;
+    }
+
+
+    //Clocks
+    if (pt == PAWN || captured != NO_PIECE) {
+        halfMoveClock = 0;
+    } else {
+        halfMoveClock++;
+    }
+
+    if (sideToMove == BLACK) fullMoveClock++;
+
+    sideToMove = ~sideToMove;
+
+    updateOccupancies();
+}
+
+void Board::unmakeMove() {
+    historyIndex--;
+    sideToMove = ~sideToMove;
+
+    const BoardState &state = history[historyIndex];
+    const Move move = state.lastMove;
+
+    Square from = Moves::getFrom(move);
+    Square to = Moves::getTo(move);
+    PieceType pt = Moves::getPt(move);
+    Color enemy = ~sideToMove;
+
+    //Castling Rights
+    castlingRights = state.castlingRights;
+
+    //En Passant Square
+    enPassantSquare = state.enPassantSquare;
+
+    halfMoveClock = state.halfMoveClock;
+
+    if (sideToMove == WHITE) {
+        fullMoveClock--;
+    }
+
+    //Array Update
+    pieceOn[from] = makePiece(sideToMove, pt);
+    pieceOn[to] = NO_PIECE;
+
+    //Bitboard Update
+    pieces[sideToMove][pt] |= squareBB(from);
+    pieces[sideToMove][pt] &= ~squareBB(to);
+
+    if (state.capturedPiece != NO_PIECE) {
+        pieces[enemy][typeOf(state.capturedPiece)] |= squareBB(to);
+        pieceOn[to] = state.capturedPiece;
+    }
+
+    //Flag Handling
+    if (Moves::isEnPassant(move)) {
+        Square capturedPawnSq = static_cast<Square>(to + (sideToMove == WHITE ? -8 : 8));
+        pieceOn[capturedPawnSq] = makePiece(enemy, PAWN);
+        pieces[enemy][PAWN] |= squareBB(capturedPawnSq);
+    } else if (Moves::isCastleKing(move)) {
+        Square rookFrom = sideToMove == WHITE ? F1 : F8;
+        Square rookTo   = sideToMove == WHITE ? H1 : H8;
+        pieces[sideToMove][ROOK] |=  squareBB(rookTo);
+        pieces[sideToMove][ROOK] &= ~squareBB(rookFrom);
+        pieceOn[rookTo]   = makePiece(sideToMove, ROOK);
+        pieceOn[rookFrom] = NO_PIECE;
+    } else if (Moves::isCastleQueen(move)) {
+        Square rookFrom = sideToMove == WHITE ? D1 : D8;
+        Square rookTo   = sideToMove == WHITE ? A1 : A8;
+        pieces[sideToMove][ROOK] |=  squareBB(rookTo);
+        pieces[sideToMove][ROOK] &= ~squareBB(rookFrom);
+        pieceOn[rookTo]   = makePiece(sideToMove, ROOK);
+        pieceOn[rookFrom] = NO_PIECE;
+    } else if (Moves::isPromotion(move)) {
+        pieces[sideToMove][Moves::getPromoPt(move)] &= ~squareBB(to);
+    }
+
+    updateOccupancies();
 }
 
 void Board::printBoard() const {

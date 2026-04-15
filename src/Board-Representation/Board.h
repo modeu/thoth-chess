@@ -34,6 +34,10 @@ constexpr CastlingRights& operator&=(CastlingRights& a, CastlingRights b) {
     return a = a & b;
 }
 
+constexpr CastlingRights& operator&=(CastlingRights& a, int b) {
+    return a = a & static_cast<CastlingRights>(b);
+}
+
 class Board {
     private:
         std::array<std::array<BitBoard, PIECE_TYPE_NB>, COLOR_NB> pieces;
