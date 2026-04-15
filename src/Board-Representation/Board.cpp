@@ -318,6 +318,7 @@ void Board::unmakeMove() {
     }
 
     updateOccupancies();
+    zobristHash = state.zobristHash; //Restore hash from history
 }
 
 void Board::printBoard() const {
