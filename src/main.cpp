@@ -15,12 +15,13 @@ int main() {
 
     Move move = createMove(A1, A5, ROOK);
 
+    std::cout << +board.getZobristHash() << std::endl;
     board.printBoard();
     board.makeMove(move);
+    std::cout << +board.getZobristHash() << std::endl;
     board.unmakeMove();
-    board.printBoard();
 
-    std::cout << +board.getCastlingRights() << std::endl;
+    std::cout << +board.getZobristHash() << std::endl;
 
 
     return 0;
