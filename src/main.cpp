@@ -17,6 +17,7 @@ int main() {
 
     board.printBoard();
     board.makeMove(move);
+    board.unmakeMove();
     board.printBoard();
 
     std::cout << +board.getCastlingRights() << std::endl;

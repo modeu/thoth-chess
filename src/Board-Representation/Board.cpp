@@ -160,9 +160,18 @@ void Board::makeMove(Move move) {
     history[historyIndex].zobristHash = zobristHash;
     historyIndex++;
 
+    zobristHash ^= Zobrist::pieceKeys[sideToMove][pt][from];
+    zobristHash ^= Zobrist::pieceKeys[sideToMove][pt][to];
+    zobristHash ^= Zobrist::castlingKeys[castlingRights];
+
+    if (enPassantSquare != NO_SQUARE) {
+        zobristHash ^= Zobrist::enPassantKeys[enPassantSquare % 8]; //Remove old en passant square from hash
+    }
+
     //Remove opponent Piece in Bitboard
     if (pieceOn[to] != NO_PIECE) {
         pieces[enemy][pieceOn[to]] &= ~squareBB(to);
+        zobristHash ^= Zobrist::pieceKeys[enemy][pieceOn[to]][to]; //Remove captured piece from hash
     }
 
     //Move own Piece in Bitboard
@@ -178,6 +187,8 @@ void Board::makeMove(Move move) {
         Square capturedPawnSq = static_cast<Square>(to + (sideToMove == WHITE ? -8 : 8));
         pieceOn[capturedPawnSq] = NO_PIECE;
         pieces[enemy][PAWN] &= ~squareBB(capturedPawnSq);
+
+        zobristHash ^= Zobrist::pieceKeys[enemy][PAWN][capturedPawnSq]; //Remove captured pawn from hash
     } else if (Moves::isCastleKing(move)) {
         Square rookFrom = sideToMove == WHITE ? H1 : H8;
         Square rookTo   = sideToMove == WHITE ? F1 : F8;
@@ -185,6 +196,9 @@ void Board::makeMove(Move move) {
         pieces[sideToMove][ROOK] &= ~squareBB(rookFrom);
         pieceOn[rookTo]   = makePiece(sideToMove, ROOK);
         pieceOn[rookFrom] = NO_PIECE;
+
+        zobristHash ^= Zobrist::pieceKeys[sideToMove][ROOK][sideToMove == WHITE ? H1 : H8]; //Remove rook from old square
+        zobristHash ^= Zobrist::pieceKeys[sideToMove][ROOK][sideToMove == WHITE ? F1 : F8]; //Add rook to new square
     } else if (Moves::isCastleQueen(move)) {
         Square rookFrom = sideToMove == WHITE ? A1 : A8;
         Square rookTo   = sideToMove == WHITE ? D1 : D8;
@@ -192,15 +206,26 @@ void Board::makeMove(Move move) {
         pieces[sideToMove][ROOK] &= ~squareBB(rookFrom);
         pieceOn[rookTo]   = makePiece(sideToMove, ROOK);
         pieceOn[rookFrom] = NO_PIECE;
+
+        zobristHash ^= Zobrist::pieceKeys[sideToMove][ROOK][sideToMove == WHITE ? A1 : A8]; //Remove rook from old square
+        zobristHash ^= Zobrist::pieceKeys[sideToMove][ROOK][sideToMove == WHITE ? D1 : D8]; //Add rook to new square
     } else if (Moves::isPromotion(move)) {
         PieceType promoPt = Moves::getPromoPt(move);
         pieces[sideToMove][PAWN]   &= ~squareBB(to);
         pieces[sideToMove][promoPt] |=  squareBB(to);
         pieceOn[to] = makePiece(sideToMove, promoPt);
+
+        zobristHash ^= Zobrist::pieceKeys[sideToMove][PAWN][to]; //Remove pawn from hash
+        zobristHash ^= Zobrist::pieceKeys[sideToMove][promoPt][to]; //Add promoted piece to hash
     }
 
     //En Passant Handling
-    enPassantSquare = Moves::isDoublePP(move) ? static_cast<Square>(to + (sideToMove == WHITE ? -8 : 8)) : NO_SQUARE;
+    if (Moves::isDoublePP(move)) {
+        enPassantSquare = static_cast<Square>(to + (sideToMove == WHITE ? -8 : 8));
+        zobristHash ^= Zobrist::enPassantKeys[enPassantSquare % 8]; //Add new en passant square to hash
+    } else {
+        enPassantSquare = NO_SQUARE;
+    }
 
     //Castling Rights
     if (pt == KING) {
@@ -215,6 +240,7 @@ void Board::makeMove(Move move) {
         else if (from == H8 || to == H8) castlingRights &= ~CASTLE_BK;
     }
 
+    zobristHash ^= Zobrist::castlingKeys[castlingRights]; //Add new castling rights to hash
 
     //Clocks
     if (pt == PAWN || captured != NO_PIECE) {
@@ -226,6 +252,7 @@ void Board::makeMove(Move move) {
     if (sideToMove == BLACK) fullMoveClock++;
 
     sideToMove = ~sideToMove;
+    zobristHash ^= Zobrist::sideKey; //Change side to move in hash
 
     updateOccupancies();
 }
