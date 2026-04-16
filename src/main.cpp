@@ -13,9 +13,10 @@ int main() {
     Zobrist::initKeys();
     Attacks::init();
 
-    board.parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+    board.parseFEN("8/8/8/8/8/8/3P4/2B5 w KQkq - 0 1");
+    board.printBoard();
 
-    board.printBitBoard(Attacks::getRookAttacks(A1, board.getOccupancy(COLOR_NB)));
+    board.printBitBoard(Attacks::getBishopAttacks(C1, board.getOccupancy(COLOR_NB)));
 
 
     return 0;
