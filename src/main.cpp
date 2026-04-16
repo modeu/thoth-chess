@@ -1,27 +1,21 @@
-#include "Board-Representation/Board.h"
-#include "Board-Representation/Move.h"
+#include "./Board-Representation/Board.h"
+#include "./Board-Representation/Move.h"
+#include "./Movegeneration/Attacks.h"
 #include <iostream>
 #include <sstream>
 #include <string>
 
 using namespace Thoth;
-using namespace Moves;
 
 Board board;
 
 int main() {
     Zobrist::initKeys();
+    Attacks::init();
+
     board.parseFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
-    Move move = createMove(A1, A5, ROOK);
-
-    std::cout << +board.getZobristHash() << std::endl;
-    board.printBoard();
-    board.makeMove(move);
-    std::cout << +board.getZobristHash() << std::endl;
-    board.unmakeMove();
-
-    std::cout << +board.getZobristHash() << std::endl;
+    board.printBitBoard(Attacks::getRookAttacks(A1, board.getOccupancy(COLOR_NB)));
 
 
     return 0;

@@ -147,6 +147,9 @@ BitBoard pawnAttacks[COLOR_NB][SQUARE_NB];
 BitBoard knightAttacks[SQUARE_NB];
 BitBoard kingAttacks[SQUARE_NB];
 
+Magic rookMagics[SQUARE_NB];
+Magic bishopMagics[SQUARE_NB];
+
 void initKnightTable() {
     for (int sq = 0; sq < SQUARE_NB; sq++) {
         BitBoard knight = squareBB((Square)sq);
@@ -204,16 +207,131 @@ void initPawnTable() {
     }
 }
 
+BitBoard computeRookMask(Square sq) {
+    BitBoard mask = 0ULL;
+    int rank = rankOf(sq), file = fileOf(sq);
+
+    for (int rr = rank + 1; rr <= 6; rr++) mask |= squareBB(makeSquare(file, rr));
+    for (int rr = rank - 1; rr >= 1; rr--) mask |= squareBB(makeSquare(file, rr));
+    for (int ff = file + 1; ff <= 6; ff++) mask |= squareBB(makeSquare(ff, rank));
+    for (int ff = file - 1; ff >= 1; ff--) mask |= squareBB(makeSquare(ff, rank));
+
+    return mask;
+}
+
+BitBoard computeBishopMask(Square sq) {
+    BitBoard mask = 0ULL;
+    int rank = rankOf(sq), file = fileOf(sq);
+
+    for (int rr = rank + 1, ff = file + 1; rr <= 6 && ff <= 6; rr++, ff++) mask |= squareBB(makeSquare(ff, rr));
+    for (int rr = rank + 1, ff = file - 1; rr <= 6 && ff >= 1; rr++, ff--) mask |= squareBB(makeSquare(ff, rr));
+    for (int rr = rank - 1, ff = file + 1; rr >= 1 && ff <= 6; rr--, ff++) mask |= squareBB(makeSquare(ff, rr));
+    for (int rr = rank - 1, ff = file - 1; rr >= 1 && ff >= 1; rr--, ff--) mask |= squareBB(makeSquare(ff, rr));
+
+    return mask;
+}
+
+BitBoard computeRookAttacks(Square sq, BitBoard occ) {
+    BitBoard attacks = 0ULL;
+    int r = rankOf(sq), f = fileOf(sq);
+
+    for (int i = r+1; i < 8; i++) {
+        attacks |= squareBB(makeSquare(f, i));
+        if (occ & squareBB(makeSquare(f, i))) break;
+    }
+
+    for (int i = r - 1; i >= 0; i--) {
+        attacks |= squareBB(makeSquare(f, i));
+        if (occ & squareBB(makeSquare(f, i))) break;
+    }
+
+    for (int i = f + 1; i < 8; i++) {
+        attacks |= squareBB(makeSquare(i, r));
+        if (occ & squareBB(makeSquare(i, r))) break;
+    }
+
+    for (int i = f - 1; i >= 0; i--) {
+        attacks |= squareBB(makeSquare(i, r));
+        if (occ & squareBB(makeSquare(i, r))) break;
+    }
+
+    return attacks;
+}
+
+BitBoard computeBishopAttacks(Square sq, BitBoard occ) {
+    BitBoard attacks = 0ULL;
+    int r = rankOf(sq), f = fileOf(sq);
+
+    for (int i = r + 1, j = f + 1; i < 8 && j < 8; i++, j++) {
+        attacks |= squareBB(makeSquare(j, i));
+        if (occ & squareBB(makeSquare(j, i))) break;
+    }
+
+    for (int i = r + 1, j = f - 1; i < 8 && j >= 0; i++, j--) {
+        attacks |= squareBB(makeSquare(j, i));
+        if (occ & squareBB(makeSquare(j, i))) break;
+    }
+
+    for (int i = r - 1, j = f + 1; i >= 0 && j < 8; i--, j++) {
+        attacks |= squareBB(makeSquare(j, i));
+        if (occ & squareBB(makeSquare(j, i))) break;
+    }
+
+    for (int i = r - 1, j = f - 1; i >= 0 && j >= 0; i--, j--) {
+        attacks |= squareBB(makeSquare(j, i));
+        if (occ & squareBB(makeSquare(j, i))) break;
+    }
+
+    return attacks;
+}
+
+BitBoard occupancyFromIndex(int index, BitBoard mask) {
+    BitBoard occ = 0ULL;
+    int bits = countBits(mask);
+
+    for (int i = 0; i < bits; i++) {
+        Square sq = static_cast<Square>(popLSB(mask));
+        if (index & (1 << i))
+            occ |= squareBB(sq);
+    }
+
+    return occ;
+}
+
 void initMagics() {
     BitBoard *rookPtr = rookAttacks;
     BitBoard *bishopPtr = bishopAttacks;
 
     for (int sq = 0; sq < SQUARE_NB; sq++) {
-        rookMagics[sq].attacks = rookPtr;
-        bishopMagics[sq].attacks = bishopPtr;
+        Magic &rm = rookMagics[sq];
+        Magic &bm = bishopMagics[sq];
 
-        int rookBits = countBits(rookMagics[sq].mask);
-        int bishopBits = countBits(bishopMagics[sq].mask);
+        rm.mask = computeRookMask((Square)sq);
+        bm.mask = computeBishopMask((Square)sq);
+
+        rm.magic = ROOK_MAGICS[sq];
+        bm.magic = BISHOP_MAGICS[sq];
+
+        rm.attacks = rookPtr;
+        bm.attacks = bishopPtr;
+
+        int rookBits = countBits(rm.mask);
+        int bishopBits = countBits(bm.mask);
+
+        rm.shift = 64 - rookBits;
+        bm.shift = 64 - bishopBits;
+
+        for (int i = 0; i < (1 << rookBits); i++) {
+            BitBoard occ = occupancyFromIndex(i, rm.mask);
+            int idx = (occ * rm.magic) >> rm.shift;
+            rm.attacks[idx] = computeRookAttacks((Square)sq, occ);
+        }
+
+        for (int i = 0; i < (1 << bishopBits); i++) {
+            BitBoard occ = occupancyFromIndex(i, bm.mask);
+            int idx = (occ * bm.magic) >> bm.shift;
+            bm.attacks[idx] = computeBishopAttacks((Square)sq, occ);
+        }
 
         rookPtr += (1 << rookBits);
         bishopPtr += (1 << bishopBits);
@@ -225,6 +343,7 @@ void init() {
     initKnightTable();
     initKingTable();
     initPawnTable();
+    initMagics();
 }
 
 

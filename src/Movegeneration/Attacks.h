@@ -15,8 +15,8 @@ struct Magic {
     int shift;
 };
 
-extern Magic bishopMagics[SQUARE_NB];
 extern Magic rookMagics[SQUARE_NB];
+extern Magic bishopMagics[SQUARE_NB];
 
 inline BitBoard getBishopAttacks(Square sq, BitBoard occupancy) {
     const Magic &m = bishopMagics[sq];
