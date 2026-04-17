@@ -59,5 +59,13 @@ constexpr BitBoard squareBB(Square sq) {
     return (1ULL << sq);
 }
 
+constexpr Square operator+(Square a, int b) {
+    return static_cast<Square>((int)a + b);
+}
+
+constexpr Square operator-(Square a, int b) {
+    return static_cast<Square>((int)a - b);
+}
+
 
 }

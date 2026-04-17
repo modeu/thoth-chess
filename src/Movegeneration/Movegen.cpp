@@ -94,27 +94,107 @@ void generatePawnMoves(const Board &board, MoveList &moves) {
     BitBoard pawns = board.getPiece(side, PAWN);
     BitBoard enemyPieces = board.getOccupancy(~side);
     BitBoard emptySquares = ~board.getOccupancy(COLOR_NB);
+    Square enPassantSquare = board.getEnPassantSquare();
 
     int direction = (side == WHITE) ? 8 : -8;
-    BitBoard promotionRank = (side == WHITE) ? RANK_7_BB : RANK_2_BB;
-    BitBoard startingRank = (side == WHITE) ? RANK_2_BB : RANK_7_BB;
+    int promotionRank = (side == WHITE) ? 6 : 1;
+    int startingRank = (side == WHITE) ? 1 : 6;
 
-    BitBoard enPassantSq = (board.getEnPassantSquare() != NO_SQUARE) ? squareBB(board.getEnPassantSquare()) : 0ULL;
+    auto addPromotions = [&](Square from, Square to) {
+        moves.add(Moves::createMove(from, to, PAWN, Moves::PROMOTION, QUEEN));
+        moves.add(Moves::createMove(from, to, PAWN, Moves::PROMOTION, ROOK));
+        moves.add(Moves::createMove(from, to, PAWN, Moves::PROMOTION, BISHOP));
+        moves.add(Moves::createMove(from, to, PAWN, Moves::PROMOTION, KNIGHT));
+    };
 
     while(pawns) {
         Square from = (Square)popLSB(pawns);
-        int rank = rankOf(from);
 
-        int to = from + direction;
-        if (to >= A1 && to <= H8) {
-            int nextRank = rankOf((Square)to);
-            if (emptySquares & squareBB((Square)to)) {
-                
+        //Pushes
+        Square to = from + direction;
+        if (emptySquares & squareBB(to)) {
+            if (rankOf(to) == promotionRank) {
+                addPromotions(from, to);
+            } else {
+                moves.add(Moves::createMove(from, to, PAWN));
+            }
+
+            //Double
+            if (rankOf(from) == startingRank) {
+                Square doublePushTo = from + 2*direction;
+                if (emptySquares & squareBB(doublePushTo)) {
+                    moves.add(Moves::createMove(from, doublePushTo, PAWN, Moves::DOUBLE_PAWN_PUSH));
+                }
+            }
+        }
+
+        //Captures
+        BitBoard enPassantBB = (enPassantSquare != NO_SQUARE) ? squareBB(enPassantSquare) : 0ULL;
+        BitBoard attacks = Attacks::pawnAttacks[side][from] & (enemyPieces | enPassantBB);
+        while (attacks) {
+            Square captureTo = (Square)popLSB(attacks);
+
+            if (captureTo == enPassantSquare) {
+                moves.add(Moves::createMove(from, captureTo, PAWN, Moves::EN_PASSANT));
+                continue;
+            }
+
+            if (rankOf(captureTo) == promotionRank) {
+                addPromotions(from, captureTo);
+            } else {
+                moves.add(Moves::createMove(from, captureTo, PAWN));
             }
         }
     }
 }
 
+template<PieceType PT>
+void generateSlidingMoves(const Board &board, MoveList &moves) {
+    Color side = board.getSideToMove();
+    BitBoard pieces = board.getPiece(side, PT);
+    BitBoard ownPieces = board.getOccupancy(side);
+    BitBoard allPieces = board.getOccupancy(COLOR_NB);
+
+    while(pieces) {
+        Square from = (Square)popLSB(pieces);
+        BitBoard attacks = 0ULL;
+
+        if (PT == BISHOP || PT == QUEEN) {
+            attacks |= Attacks::getBishopAttacks(from, allPieces) & ~ownPieces;
+        }
+
+        if (PT == ROOK || PT == QUEEN) {
+            attacks |= Attacks::getRookAttacks(from, allPieces) & ~ownPieces;
+        }
+
+        while(attacks) {
+            Square to = (Square)popLSB(attacks);
+            moves.add(Moves::createMove(from, to, PT));
+        }
+    }
+}
+
+void generatePseudoLegalMoves(const Board &board, MoveList &moves) {
+    generateKnightMoves(board, moves);
+    generateKingMoves(board, moves);
+    generatePawnMoves(board, moves);
+    generateSlidingMoves<BISHOP>(board, moves);
+    generateSlidingMoves<ROOK>(board, moves);
+    generateSlidingMoves<QUEEN>(board, moves);
+}
+
+void generateLegalMoves(Board &board, MoveList &moves) {
+    MoveList pseudoMoves;
+    generatePseudoLegalMoves(board, pseudoMoves);
+
+    for (int i = 0; i < pseudoMoves.count; i++) {
+        board.makeMove(pseudoMoves.moves[i]);
+
+        if (!isCheck(board, ~board.getSideToMove())) moves.add(pseudoMoves.moves[i]);
+        
+        board.unmakeMove();
+    }
+}
 
 }
 }
