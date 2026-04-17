@@ -1,5 +1,6 @@
 #include "Movegen.h"
 #include "Attacks.h"
+#include <cassert>
 
 namespace Thoth {
 namespace Movegen {
@@ -27,7 +28,7 @@ bool isSquareAttacked(const Board &board, Square square, Color attacker) {
     if (bishopQueenAttacks & (board.getPiece(attacker, BISHOP) | board.getPiece(attacker, QUEEN))) return true;
     if (rookQueenAttacks & (board.getPiece(attacker, ROOK) | board.getPiece(attacker, QUEEN))) return true;
     if (Attacks::knightAttacks[square] & board.getPiece(attacker, KNIGHT)) return true;
-    if (Attacks::pawnAttacks[attacker][square] & board.getPiece(attacker, PAWN)) return true;
+    if (Attacks::pawnAttacks[~attacker][square] & board.getPiece(attacker, PAWN)) return true;
     if (Attacks::kingAttacks[square] & board.getPiece(attacker, KING)) return true;
 
     return false;
@@ -97,7 +98,7 @@ void generatePawnMoves(const Board &board, MoveList &moves) {
     Square enPassantSquare = board.getEnPassantSquare();
 
     int direction = (side == WHITE) ? 8 : -8;
-    int promotionRank = (side == WHITE) ? 6 : 1;
+    int promotionRank = (side == WHITE) ? 7 : 0;
     int startingRank = (side == WHITE) ? 1 : 6;
 
     auto addPromotions = [&](Square from, Square to) {
@@ -159,12 +160,16 @@ void generateSlidingMoves(const Board &board, MoveList &moves) {
         Square from = (Square)popLSB(pieces);
         BitBoard attacks = 0ULL;
 
-        if (PT == BISHOP || PT == QUEEN) {
+        if constexpr (PT == BISHOP) {
             attacks |= Attacks::getBishopAttacks(from, allPieces) & ~ownPieces;
         }
 
-        if (PT == ROOK || PT == QUEEN) {
+        if constexpr (PT == ROOK) {
             attacks |= Attacks::getRookAttacks(from, allPieces) & ~ownPieces;
+        }
+
+        if constexpr (PT == QUEEN) {
+            attacks |= Attacks::getQueenAttacks(from, allPieces) & ~ownPieces;
         }
 
         while(attacks) {
@@ -175,9 +180,9 @@ void generateSlidingMoves(const Board &board, MoveList &moves) {
 }
 
 void generatePseudoLegalMoves(const Board &board, MoveList &moves) {
+    generatePawnMoves(board, moves);
     generateKnightMoves(board, moves);
     generateKingMoves(board, moves);
-    generatePawnMoves(board, moves);
     generateSlidingMoves<BISHOP>(board, moves);
     generateSlidingMoves<ROOK>(board, moves);
     generateSlidingMoves<QUEEN>(board, moves);
@@ -187,10 +192,20 @@ void generateLegalMoves(Board &board, MoveList &moves) {
     MoveList pseudoMoves;
     generatePseudoLegalMoves(board, pseudoMoves);
 
-    for (int i = 0; i < pseudoMoves.count; i++) {
-        board.makeMove(pseudoMoves.moves[i]);
+    for (Move m : pseudoMoves) {
+        Square from    = Moves::getFrom(m);
+        Square to      = Moves::getTo(m);
+        PieceType pt   = Moves::getPt(m);
 
-        if (!isCheck(board, ~board.getSideToMove())) moves.add(pseudoMoves.moves[i]);
+        // Debug
+        assert(pt >= PAWN && pt <= KING);
+        assert(from >= A1 && from <= H8);
+        assert(to   >= A1 && to   <= H8);
+
+
+        board.makeMove(m);
+
+        if (!isCheck(board, ~board.getSideToMove())) moves.add(m);
         
         board.unmakeMove();
     }

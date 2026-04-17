@@ -1,6 +1,7 @@
 #include "Board.h"
 #include <sstream>
 #include <iostream>
+#include <cassert>
 
 
 namespace Thoth {
@@ -150,7 +151,6 @@ void Board::makeMove(Move move) {
     PieceType pt = Moves::getPt(move);
     Color enemy = ~sideToMove;
 
-
     //Save Boardstate in History
     history[historyIndex].lastMove = move;
     history[historyIndex].enPassantSquare = enPassantSquare;
@@ -170,8 +170,8 @@ void Board::makeMove(Move move) {
 
     //Remove opponent Piece in Bitboard
     if (pieceOn[to] != NO_PIECE) {
-        pieces[enemy][pieceOn[to]] &= ~squareBB(to);
-        zobristHash ^= Zobrist::pieceKeys[enemy][pieceOn[to]][to]; //Remove captured piece from hash
+        pieces[enemy][typeOf(pieceOn[to])] &= ~squareBB(to);
+        zobristHash ^= Zobrist::pieceKeys[enemy][typeOf(pieceOn[to])][to]; //Remove captured piece from hash
     }
 
     //Move own Piece in Bitboard
