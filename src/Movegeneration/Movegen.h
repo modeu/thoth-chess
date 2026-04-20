@@ -15,5 +15,8 @@ void generatePseudoLegalMoves(const Board &board, MoveList &moves);
 void generateLegalMoves(Board &board, MoveList &moves);
 
 
+//Helper
+bool isCheck(const Board &board, Color side);
+
 }
 }
