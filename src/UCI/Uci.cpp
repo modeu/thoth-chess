@@ -71,17 +71,26 @@ void UCI::handleGo(const std::vector<std::string> &tokens) {
     handleStop();
     stop_.store(false);
 
-    searchThread_ = std::thread([this]() {
-        MoveList moves;
-        Movegen::generateLegalMoves(board_, moves);
+    int msTime = 5000;
+    Color side = board_.getSideToMove();
 
-        if (moves.size() == 0) {
-            sendBestMove("0000");
-            return;
-        }
+    for (int i = 1; i < (int)tokens.size(); i++) {
+        if (tokens[i] == "wtime" && side == WHITE) msTime = std::stoi(tokens[i+1]) / 20;
+        if (tokens[i] == "btime" && side == BLACK) msTime = std::stoi(tokens[i+1]) / 20;
+        if (tokens[i] == "movetime") msTime = std::stoi(tokens[i+1]);
+    }
 
-        Move best = moves.moves[rand() % moves.size()];
-        sendBestMove(moveToString(best));
+
+
+    searchThread_ = std::thread([this, msTime]() {
+        std::thread timer([this, msTime]() {
+            std::this_thread::sleep_for(std::chrono::milliseconds(msTime));
+            stop_.store(true);
+        });
+        timer.detach();
+
+        Search::SearchResult result = searcher_.search(board_, msTime, stop_);
+        sendBestMove(moveToString(result.bestMove));
     });
 }
 

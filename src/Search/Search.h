@@ -22,7 +22,7 @@ class Searcher {
         std::atomic<bool> *stop_ = nullptr;
 
     public:
-        SearchResult search(Board &board, int msTime);
+        SearchResult search(Board &board, int msTime, std::atomic<bool> &stop);
 
 
 };

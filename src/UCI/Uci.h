@@ -5,6 +5,7 @@
 #include <vector>
 #include "../Board-Representation/Board.h"
 #include "../Movegeneration/Movegen.h"
+#include "../Search/Search.h"
 
 namespace Thoth {
 
@@ -25,6 +26,7 @@ class UCI {
         Move stringToMove(const std::string &str);
 
         Board board_;
+        Search::Searcher searcher_;
         std::thread searchThread_;
         std::atomic<bool> stop_{false};
         std::mutex outputMutex_;
