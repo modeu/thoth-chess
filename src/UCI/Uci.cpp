@@ -74,10 +74,22 @@ void UCI::handleGo(const std::vector<std::string> &tokens) {
     int msTime = 5000;
     Color side = board_.getSideToMove();
 
+    int wtime = 0, btime = 0, winc = 0, binc = 0, moveTime = 0;
+
     for (int i = 1; i < (int)tokens.size(); i++) {
-        if (tokens[i] == "wtime" && side == WHITE) msTime = std::stoi(tokens[i+1]) / 20;
-        if (tokens[i] == "btime" && side == BLACK) msTime = std::stoi(tokens[i+1]) / 20;
-        if (tokens[i] == "movetime") msTime = std::stoi(tokens[i+1]);
+        if (tokens[i] == "wtime") wtime = std::stoi(tokens[i+1]);
+        if (tokens[i] == "btime") btime = std::stoi(tokens[i+1]);
+        if (tokens[i] == "winc") winc = std::stoi(tokens[i+1]);
+        if (tokens[i] == "binc") binc = std::stoi(tokens[i+1]);
+        if (tokens[i] == "movetime") moveTime = std::stoi(tokens[i+1]);
+    }
+
+    if (moveTime > 0) {
+        msTime = moveTime;
+    } else if (side == WHITE) {
+        msTime = wtime/20 + winc/2;
+    } else if (side == BLACK) {
+        msTime = btime/20 + binc/2;
     }
 
 
