@@ -57,10 +57,11 @@ int Searcher::scoreMove(const Board &board, Move move) {
     PieceType pt = Moves::getPt(move);
     Piece captured = board.getPieceOn(Moves::getTo(move));
 
-    if (captured != NO_PIECE)
-        return MVV_LVA[pt][typeOf(captured)];
+    if (Moves::isEnPassant(move)) return MVV_LVA[PAWN][PAWN];
 
-    return 0;
+    if (captured == NO_PIECE) return 0;
+
+    return MVV_LVA[pt][captured];
 }
 
 void Searcher::sortMoves(const Board &board, MoveList &moves) {
