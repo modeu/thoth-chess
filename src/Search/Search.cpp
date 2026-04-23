@@ -53,6 +53,38 @@ int Searcher::alphaBeta(Board &board, int depth, int alpha, int beta) {
 }
 
 
+int Searcher::scoreMove(const Board &board, Move move) {
+    PieceType pt = Moves::getPt(move);
+    Piece captured = board.getPieceOn(Moves::getTo(move));
+
+    if (captured != NO_PIECE)
+        return MVV_LVA[pt][typeOf(captured)];
+
+    return 0;
+}
+
+void Searcher::sortMoves(const Board &board, MoveList &moves) {
+    std::array<int, 256> scores;
+    for (int i = 0; i < moves.size(); i++)
+        scores[i] = scoreMove(board, moves.moves[i]);
+
+    for (int i = 1; i < moves.size(); i++) {
+        Move keyMove = moves.moves[i];
+        int keyScore = scores[i];
+        int j = i - 1;
+
+        while (j >= 0 && scores[j] < keyScore) {
+            moves.moves[j + 1] = moves.moves[j];
+            scores[j + 1] = scores[j];
+            j--;
+        }
+
+        moves.moves[j + 1] = keyMove;
+        scores[j + 1] = keyScore;
+    }
+}
+
+
 SearchResult Searcher::search(Board &board, int msTime, std::atomic<bool> &stop) {
     stop_ = &stop;
 
