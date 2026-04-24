@@ -102,7 +102,17 @@ void UCI::handleGo(const std::vector<std::string> &tokens) {
         timer.detach();
 
         Search::SearchResult result = searcher_.search(board_, msTime, stop_);
-        sendBestMove(moveToString(result.bestMove));
+        if (result.bestMove == Moves::NULL_MOVE) {
+            MoveList moves;
+            Movegen::generateLegalMoves(board_, moves);
+            if (moves.size() > 0) {
+                sendBestMove(moveToString(moves.moves[0]));
+            } else {
+                sendBestMove("0000");
+            }
+        } else {
+            sendBestMove(moveToString(result.bestMove));
+        }
     });
 }
 
