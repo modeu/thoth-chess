@@ -120,9 +120,11 @@ SearchResult Searcher::search(Board &board, int msTime, std::atomic<bool> &stop)
                   << "\n";
         std::cout.flush();
 
+        /*
         constexpr int BRANCHING_FACTOR = 3;
         if (afterDepth + depthTime * BRANCHING_FACTOR > msTime) 
             break;
+        */
     }
 
     return result;
