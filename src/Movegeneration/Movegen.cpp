@@ -216,7 +216,7 @@ void generateCaptures(Board &board, MoveList &moves) {
     generateLegalMoves(board, legalMoves);
 
     for (Move m : legalMoves) {
-        if (board.getPieceOn(Moves::getTo(m)) != NO_PIECE) moves.add(m);
+        if ((board.getPieceOn(Moves::getTo(m)) != NO_PIECE) || Moves::getFlag(m) == Moves::EN_PASSANT) moves.add(m);
     }   
 }
 
