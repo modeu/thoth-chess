@@ -12,7 +12,7 @@ int Searcher::alphaBeta(Board &board, int depth, int alpha, int beta) {
         return 0;
     
     if (depth == 0)
-        return Eval::evaluate(board);
+        return quiescence(board, alpha, beta);
 
     MoveList moves;
     Movegen::generateLegalMoves(board, moves);
@@ -50,6 +50,35 @@ int Searcher::alphaBeta(Board &board, int depth, int alpha, int beta) {
     }
 
     return bestScore;
+}
+
+int Searcher::quiescence(Board &board, int alpha, int beta) {
+    int score;
+    int static_eval = Eval::evaluate(board);
+
+    int best_value = static_eval;
+    if (best_value >= beta)
+        return best_value;
+    if (best_value > alpha) 
+        alpha = best_value;
+
+    MoveList moves;
+    Movegen::generateCaptures(board, moves);
+
+    for (Move m : moves) {
+        board.makeMove(m);
+        score = -quiescence(board, -beta, -alpha);
+        board.unmakeMove();
+
+        if (score >= beta)
+            return score;
+        if (score > best_value)
+            best_value = score;
+        if (score > alpha)
+            alpha = score;
+    }
+
+    return best_value;
 }
 
 

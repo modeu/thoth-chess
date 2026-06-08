@@ -13,6 +13,7 @@ void generateSlidingMoves(const Board &board, MoveList &moves);
 
 void generatePseudoLegalMoves(const Board &board, MoveList &moves);
 void generateLegalMoves(Board &board, MoveList &moves);
+void generateCaptures(Board &board, MoveList &moves);
 
 
 //Helper

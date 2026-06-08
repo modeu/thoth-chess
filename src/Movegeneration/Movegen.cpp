@@ -211,5 +211,14 @@ void generateLegalMoves(Board &board, MoveList &moves) {
     }
 }
 
+void generateCaptures(Board &board, MoveList &moves) {
+    MoveList legalMoves;
+    generateLegalMoves(board, legalMoves);
+
+    for (Move m : legalMoves) {
+        if (board.getPieceOn(Moves::getTo(m)) != NO_PIECE) moves.add(m);
+    }   
+}
+
 }
 }
