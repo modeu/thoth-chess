@@ -10,6 +10,30 @@ namespace Search {
 int Searcher::alphaBeta(Board &board, int depth, int alpha, int beta) {
     if (stop_->load(std::memory_order_relaxed))
         return 0;
+
+    uint64_t hash = board.getZobristHash();
+    TTEntry &entry = tranTable[ttIndex(hash)];
+    Move ttMove = Moves::NULL_MOVE;
+
+    if (entry.key == hash && entry.depth >= depth) {
+        int s = entry.score;
+        if (entry.flag == TT_EXACT) {
+            if (depth == currentDepth)
+                bestMoveCurrentDepth = entry.bestMove;
+            return s;
+        }
+
+        if (entry.flag == TT_LOWER) alpha = std::max(alpha, s);
+        if (entry.flag == TT_UPPER) beta = std::min(beta, s);
+        if (alpha >= beta) {
+            if (depth == currentDepth)
+                bestMoveCurrentDepth = entry.bestMove;
+            return s;
+        }
+    }
+
+    if (entry.key == hash)
+        ttMove = entry.bestMove;
     
     if (depth == 0)
         return quiescence(board, alpha, beta, 0);
@@ -24,7 +48,11 @@ int Searcher::alphaBeta(Board &board, int depth, int alpha, int beta) {
         return 0;
     }
 
+    sortMoves(board, moves, ttMove);
+
     int bestScore = -99999;
+    int originalAlpha = alpha;
+    Move bestMove = Moves::NULL_MOVE;
 
     for (Move m : moves) {
         board.makeMove(m);
@@ -36,6 +64,7 @@ int Searcher::alphaBeta(Board &board, int depth, int alpha, int beta) {
         
         if (score > bestScore) {
             bestScore = score;
+            bestMove = m;
             if (score > alpha) {
                 alpha = score;
                 if (depth == currentDepth) {
@@ -44,10 +73,16 @@ int Searcher::alphaBeta(Board &board, int depth, int alpha, int beta) {
             }
         }
 
-        if (score >= beta) {
-            return bestScore;
-        }
+        if (score >= beta) 
+            break;
     }
+
+    TTFlag flag = (bestScore <= originalAlpha) ? TT_UPPER 
+                : (bestScore >= beta)          ? TT_LOWER
+                : TT_EXACT;
+
+    if (entry.depth <= depth) 
+        tranTable[ttIndex(hash)] = {hash, bestScore, depth, bestMove, flag};
 
     return bestScore;
 }
@@ -68,7 +103,7 @@ int Searcher::quiescence(Board &board, int alpha, int beta, int qdepth) {
 
     MoveList moves;
     Movegen::generateCaptures(board, moves);
-    sortMoves(board, moves);
+    sortMoves(board, moves, Moves::NULL_MOVE);
 
     for (Move m : moves) {
         board.makeMove(m);
@@ -95,13 +130,15 @@ int Searcher::scoreMove(const Board &board, Move move) {
 
     if (captured == NO_PIECE) return 0;
 
-    return MVV_LVA[pt][captured];
+    return MVV_LVA[pt][typeOf(captured)];
 }
 
-void Searcher::sortMoves(const Board &board, MoveList &moves) {
+void Searcher::sortMoves(const Board &board, MoveList &moves, Move ttMove) {
     std::array<int, 256> scores;
-    for (int i = 0; i < moves.size(); i++)
+    for (int i = 0; i < moves.size(); i++) {
         scores[i] = scoreMove(board, moves.moves[i]);
+        if (moves.moves[i] == ttMove) scores[i] = 100000;
+    }
 
     for (int i = 1; i < moves.size(); i++) {
         Move keyMove = moves.moves[i];
@@ -142,6 +179,9 @@ SearchResult Searcher::search(Board &board, int msTime, std::atomic<bool> &stop)
         result.bestMove = bestMoveCurrentDepth;
         result.score = score;
         result.depth = depth;
+
+        if (std::abs(score) >= 99000)
+            break;
 
         long long afterDepth = elapsed();
         long long depthTime = afterDepth - beforeDepth;
