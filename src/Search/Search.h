@@ -24,7 +24,7 @@ struct SearchResult {
 class Searcher {
     private:
         int alphaBeta(Board &board, int depth, int alpha, int beta);
-        int quiescence(Board &board, int alpha, int beta);
+        int quiescence(Board &board, int alpha, int beta, int qdepth);
         int scoreMove(const Board &board, Move move);
         void sortMoves(const Board &board, MoveList &moves);
 
