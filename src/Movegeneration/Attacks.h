@@ -1,5 +1,6 @@
 #pragma once
 #include "../Misc.h"
+#include <cassert>
 
 namespace Thoth {
 namespace Attacks {
@@ -20,7 +21,8 @@ extern Magic bishopMagics[SQUARE_NB];
 
 inline BitBoard getBishopAttacks(Square sq, BitBoard occupancy) {
     const Magic &m = bishopMagics[sq];
-    return m.attacks[((occupancy & m.mask) * m.magic) >> m.shift];
+    uint64_t idx = ((occupancy & m.mask) * m.magic) >> m.shift;
+    return m.attacks[idx];
 }
     
 inline BitBoard getRookAttacks(Square sq, BitBoard occupancy) {

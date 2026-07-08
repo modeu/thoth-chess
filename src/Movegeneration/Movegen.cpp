@@ -197,12 +197,6 @@ void generateLegalMoves(Board &board, MoveList &moves) {
         Square to      = Moves::getTo(m);
         PieceType pt   = Moves::getPt(m);
 
-        // Debug
-        assert(pt >= PAWN && pt <= KING);
-        assert(from >= A1 && from <= H8);
-        assert(to   >= A1 && to   <= H8);
-
-
         board.makeMove(m);
 
         if (!isCheck(board, ~board.getSideToMove())) moves.add(m);
